@@ -20,3 +20,11 @@ class DataWrapper:
         df = pd.DataFrame(df)
         conn.close()
         return df
+    
+    @staticmethod
+    def get_boletim_inpasa():
+        conn = start_connection_datalake()           
+        df = pd.read_sql_query(cfg.QUERY_GRAFICO_INPASA, conn)
+        df = pd.DataFrame(df)
+        conn.close()
+        return df
