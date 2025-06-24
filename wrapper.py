@@ -4,7 +4,7 @@ import pandas as pd
 import logging
 import json
 from dotenv import load_dotenv
-from conn_pstg import start_connection_datalake
+from conn_pstg import start_connection_datalake, start_connection_zeroum
 import pytz
 from datetime import datetime
 
@@ -25,6 +25,14 @@ class DataWrapper:
     def get_boletim_inpasa():
         conn = start_connection_datalake()           
         df = pd.read_sql_query(cfg.QUERY_GRAFICO_INPASA, conn)
+        df = pd.DataFrame(df)
+        conn.close()
+        return df
+    
+    @staticmethod
+    def get_projecao_deposito():
+        conn = start_connection_zeroum()           
+        df = pd.read_sql_query(cfg.QUERY_PROJECAO_ZEROUM, conn)
         df = pd.DataFrame(df)
         conn.close()
         return df

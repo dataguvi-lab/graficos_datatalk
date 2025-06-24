@@ -15,3 +15,14 @@ def start_connection_datalake():
                             sslmode="require")
     #print("Conexão bem-sucedida. O banco de dados está ativo.")
     return conn
+
+def start_connection_zeroum(): 
+    
+    conn = psycopg2.connect(host=os.getenv("GUVI_HOST"), 
+                            database=os.getenv("GUVI_DATABASE"), 
+                            port=os.getenv("GUVI_PORT"), 
+                            user=os.getenv("GUVI_USER"),
+                            password=os.getenv("GUVI_PASSWORD"), 
+                            sslmode="require")
+    #print("Conexão bem-sucedida. O banco de dados está ativo.")
+    return conn
