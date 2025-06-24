@@ -1,0 +1,121 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
+import psycopg2 # ou o conector do seu banco de dados
+from io import StringIO
+import numpy as np
+from scipy.interpolate import make_interp_spline
+import datetime
+from wrapper import DataWrapper
+from git import Repo
+
+# --- Configurações Visuais do Gráfico ---
+COR_SEMANA_PASSADA = '#495057'
+COR_HOJE_REALIZADO = '#d81d29'
+COR_PROJECAO = '#d81d29'
+COR_PREENCHIMENTO = '#EFBDBE'
+
+def get_spline_smooth(x_series, y_series):
+    """
+    Helper function to generate smooth curve data using spline interpolation.
+    It filters out NaN values before calculation.
+    """
+    valid_indices = ~y_series.isna()
+    x_valid = x_series[valid_indices]
+    y_valid = y_series[valid_indices]
+    
+    if len(x_valid) < 4:
+        return x_valid, y_valid 
+    
+    spline = make_interp_spline(x_valid, y_valid, k=3) 
+    x_smooth = np.linspace(x_valid.min(), x_valid.max(), 300)
+    y_smooth = spline(x_smooth)
+    
+    return x_smooth, y_smooth
+
+def criar_grafico_projecao():
+    df = DataWrapper.get_projecao_deposito()
+        
+    df['hora_numero'] = pd.to_datetime(df['hora']).dt.hour
+    
+    try:
+        primeira_hora_projetada = df[~np.isclose(df['projecao'], df['AtualDepositoHoje'])]['hora_numero'].min()
+        hora_corte = primeira_hora_projetada - 1
+        print(f"Ponto de corte detectado automaticamente: Hora {hora_corte}")
+    except (ValueError, TypeError):
+        hora_corte = 23
+        print("Nenhuma projeção detectada. Exibindo dados completos.")
+
+    df['realizado_hoje'] = df.apply(lambda row: row['AtualDepositoHoje'] if row['hora_numero'] <= hora_corte else np.nan, axis=1)
+    df['linha_projecao'] = df.apply(lambda row: row['projecao'] if row['hora_numero'] >= hora_corte else np.nan, axis=1)
+    df.loc[df['hora_numero'] == hora_corte, 'linha_projecao'] = df.loc[df['hora_numero'] == hora_corte, 'realizado_hoje']
+
+    # --- Etapa 3: Criação do Gráfico ---
+    plt.style.use('seaborn-v0_8-whitegrid')
+    fig, ax = plt.subplots(figsize=(15, 9))
+    
+    x_smooth_semana, y_smooth_semana = get_spline_smooth(df['hora_numero'], df['MaiorDeposito7DiasAtras'])
+    x_smooth_hoje, y_smooth_hoje = get_spline_smooth(df['hora_numero'], df['realizado_hoje'])
+    x_smooth_proj, y_smooth_proj = get_spline_smooth(df['hora_numero'], df['linha_projecao'])
+
+    ax.plot(x_smooth_semana, y_smooth_semana, color=COR_SEMANA_PASSADA, linewidth=2.5)
+    ax.plot(x_smooth_hoje, y_smooth_hoje, color=COR_HOJE_REALIZADO, linewidth=2.5)
+    ax.plot(x_smooth_proj, y_smooth_proj, color=COR_PROJECAO, linewidth=2.5, linestyle='--')
+    
+    ax.scatter(df['hora_numero'], df['MaiorDeposito7DiasAtras'], color=COR_SEMANA_PASSADA, s=20, zorder=10)
+    ax.scatter(df['hora_numero'], df['realizado_hoje'], color=COR_HOJE_REALIZADO, s=20, zorder=10)
+    
+    ax.fill_between(x_smooth_hoje, y_smooth_hoje, color=COR_PREENCHIMENTO, alpha=0.5)
+
+    dias_semana = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo']
+    hoje = datetime.datetime.now()
+    indice = hoje.weekday()
+
+    # --- Formatação e Títulos ---
+    fig.suptitle(f'Projeção dos depósitos ao longo do dia ({dias_semana[indice]})', fontsize=20, fontweight='bold', ha='center')
+    ax.set_title("Comparativo do valor acumulado de hoje com a semana anterior", fontsize=14, pad=10, color='grey')
+    
+    ax.set_xlabel('Hora do dia', fontsize=12, labelpad=10)
+    ax.set_ylabel('Valor Acumulado (R$)', fontsize=12, labelpad=10)
+    
+    ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, pos: f'R$ {x/1e6:.1f} Mi'))
+    ax.set_xticks(range(0, 24))
+    ax.set_xlim(-0.5, 23.5)
+    
+    ax.spines[['top', 'right']].set_visible(False)
+    ax.spines[['left', 'bottom']].set_color('lightgrey')
+    ax.tick_params(colors='grey')
+    ax.grid(True, which='major', linestyle='--', linewidth=0.5, color='lightgrey')
+
+    from matplotlib.lines import Line2D
+    legend_elements = [
+        Line2D([0], [0], color=COR_SEMANA_PASSADA, lw=2.5, marker='o', label='Semana Passada'),
+        Line2D([0], [0], color=COR_HOJE_REALIZADO, lw=2.5, marker='o', label='Hoje'),
+        Line2D([0], [0], color=COR_PROJECAO, lw=2.5, linestyle='--', label='Projeção')
+    ]
+    ax.legend(handles=legend_elements, loc='upper left', frameon=False, fontsize=12, bbox_to_anchor=(0.01, 0.99))
+    
+    fig.tight_layout(rect=[0, 0, 1, 0.96]) 
+    
+    plt.savefig('grafico_projecao_deposito.png', dpi=300, bbox_inches='tight', facecolor='white')
+
+
+    # Caminho onde o repositório está clonado
+    repo_dir = '/home/ubuntu/repositorios/graficos_datatalk'  # <=== altere aqui
+
+    # Bloco do Git (mantido como no original)
+    try:
+        # Descomente as linhas abaixo para usar o Git
+        repo = Repo(repo_dir)
+        repo.git.add('grafico_projecao_deposito.png')
+        repo.index.commit('chore: Ajusta posição da legenda para melhor visualização')
+        origin = repo.remote(name='origin')
+        origin.push()
+        print("Arquivo enviado para o GitHub com sucesso!")
+    except Exception as e:
+        print(f"Erro ao enviar para o GitHub: {e}")
+
+    print('✅ Gráfico com design minimalista gerado e salvo com sucesso!')
+
+if __name__ == '__main__':
+    criar_grafico_projecao()

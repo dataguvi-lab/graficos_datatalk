@@ -88,7 +88,7 @@ plt.tight_layout(rect=[0.05, 0.05, 0.95, 0.9]) # Ajusta para garantir que o tít
 plt.savefig('grafico_quantidade_por_empresa.png', dpi=300, bbox_inches='tight', facecolor='white')
 
 # Caminho onde o repositório está clonado
-repo_dir = r'C:\\Users\\gerso\\Documents\\Data Guvi\\Data Talk'  # <=== altere aqui
+repo_dir = '/home/ubuntu/repositorios/graficos_datatalk'  # <=== altere aqui
 
 # Bloco do Git (mantido como no original)
 try:

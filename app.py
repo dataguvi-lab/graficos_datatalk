@@ -139,7 +139,7 @@ plt.close()
 
 
 # Caminho onde o repositório está clonado
-repo_dir = r'C:\\home\\ubuntu\\repositorios\\graficos_datatalk'  # <=== altere aqui
+repo_dir = '/home/ubuntu/repositorios/graficos_datatalk'  # <=== altere aqui
 
 # === 2. Git: adicionar, commit e push ===
 try:
