@@ -18,23 +18,17 @@ COR_PREENCHIMENTO = '#EFBDBE'
 def get_spline_smooth(x_series, y_series):
     """
     Helper function to generate smooth curve data using spline interpolation.
-    It filters out NaN values and duplicate X before calculation.
+    It filters out NaN values before calculation.
     """
     valid_indices = ~y_series.isna()
     x_valid = x_series[valid_indices]
     y_valid = y_series[valid_indices]
     
     if len(x_valid) < 4:
-        return x_valid, y_valid
+        return x_valid, y_valid 
     
-    # Remove duplicatas em X (mantendo o primeiro valor correspondente)
-    df_valid = pd.DataFrame({'x': x_valid, 'y': y_valid}).drop_duplicates(subset='x', keep='first')
-    
-    x_unique = df_valid['x']
-    y_unique = df_valid['y']
-    
-    spline = make_interp_spline(x_unique, y_unique, k=3) 
-    x_smooth = np.linspace(x_unique.min(), x_unique.max(), 300)
+    spline = make_interp_spline(x_valid, y_valid, k=3) 
+    x_smooth = np.linspace(x_valid.min(), x_valid.max(), 300)
     y_smooth = spline(x_smooth)
     
     return x_smooth, y_smooth
@@ -44,7 +38,7 @@ def criar_grafico_projecao():
         
     df['hora_numero'] = pd.to_datetime(df['hora']).dt.hour
 
-    df['hora_plot'] = df['hora_numero'].apply(lambda h: h if h > 0 else 0)
+    df['hora_plot'] = df['hora_numero'].apply(lambda h: h+1)
     
     try:
         primeira_hora_projetada = df[~np.isclose(df['projecao'], df['AtualDepositoHoje'])]['hora_numero'].min()
@@ -52,10 +46,11 @@ def criar_grafico_projecao():
         hora_corte = primeira_hora_projetada - 1
         print(f"Ponto de corte detectado automaticamente: Hora {hora_corte}")
     except (ValueError, TypeError):
-        hora_corte = 23
+        hora_corte = 24
         print("Nenhuma projeção detectada. Exibindo dados completos.")
 
     df['realizado_hoje'] = df.apply(lambda row: row['AtualDepositoHoje'] if row['hora_numero'] <= hora_corte else np.nan, axis=1)
+    print(df)
     df['linha_projecao'] = df.apply(lambda row: row['projecao'] if row['hora_numero'] >= hora_corte else np.nan, axis=1)
     df.loc[df['hora_numero'] == hora_corte, 'linha_projecao'] = df.loc[df['hora_numero'] == hora_corte, 'realizado_hoje']
 
@@ -88,8 +83,9 @@ def criar_grafico_projecao():
     ax.set_ylabel('Valor Acumulado (R$)', fontsize=12, labelpad=10)
     
     ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, pos: f'R$ {x/1e6:.1f} Mi'))
-    ax.set_xticks(range(0, 24))
-    ax.set_xlim(-0.5, 23.5)
+    ax.set_xticks(range(1, 25))
+    ax.set_xlim(0.5, 24.5)
+
     
     ax.spines[['top', 'right']].set_visible(False)
     ax.spines[['left', 'bottom']].set_color('lightgrey')
@@ -106,7 +102,7 @@ def criar_grafico_projecao():
     
     fig.tight_layout(rect=[0, 0, 1, 0.96]) 
     
-    plt.savefig('grafico_projecao_deposito.png', dpi=300, bbox_inches='tight', facecolor='white')
+    plt.savefig('/home/ubuntu/repositorios/graficos_datatalk/grafico_projecao_deposito.png', dpi=300, bbox_inches='tight', facecolor='white')
 
 
     # Caminho onde o repositório está clonado
@@ -117,7 +113,7 @@ def criar_grafico_projecao():
         # Descomente as linhas abaixo para usar o Git
         repo = Repo(repo_dir)
         repo.git.add('grafico_projecao_deposito.png')
-        repo.index.commit('Atualização gráfico projeção depósito ZEROUM')
+        repo.index.commit('Atualização gráfico de projeção depósito ZEROUM')
         origin = repo.remote(name='origin')
         origin.push()
         print("Arquivo enviado para o GitHub com sucesso!")
