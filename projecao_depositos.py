@@ -18,17 +18,23 @@ COR_PREENCHIMENTO = '#EFBDBE'
 def get_spline_smooth(x_series, y_series):
     """
     Helper function to generate smooth curve data using spline interpolation.
-    It filters out NaN values before calculation.
+    It filters out NaN values and duplicate X before calculation.
     """
     valid_indices = ~y_series.isna()
     x_valid = x_series[valid_indices]
     y_valid = y_series[valid_indices]
     
     if len(x_valid) < 4:
-        return x_valid, y_valid 
+        return x_valid, y_valid
     
-    spline = make_interp_spline(x_valid, y_valid, k=3) 
-    x_smooth = np.linspace(x_valid.min(), x_valid.max(), 300)
+    # Remove duplicatas em X (mantendo o primeiro valor correspondente)
+    df_valid = pd.DataFrame({'x': x_valid, 'y': y_valid}).drop_duplicates(subset='x', keep='first')
+    
+    x_unique = df_valid['x']
+    y_unique = df_valid['y']
+    
+    spline = make_interp_spline(x_unique, y_unique, k=3) 
+    x_smooth = np.linspace(x_unique.min(), x_unique.max(), 300)
     y_smooth = spline(x_smooth)
     
     return x_smooth, y_smooth
@@ -37,9 +43,12 @@ def criar_grafico_projecao():
     df = DataWrapper.get_projecao_deposito()
         
     df['hora_numero'] = pd.to_datetime(df['hora']).dt.hour
+
+    df['hora_plot'] = df['hora_numero'].apply(lambda h: h if h > 0 else 0)
     
     try:
         primeira_hora_projetada = df[~np.isclose(df['projecao'], df['AtualDepositoHoje'])]['hora_numero'].min()
+        print(primeira_hora_projetada)
         hora_corte = primeira_hora_projetada - 1
         print(f"Ponto de corte detectado automaticamente: Hora {hora_corte}")
     except (ValueError, TypeError):
@@ -54,16 +63,16 @@ def criar_grafico_projecao():
     plt.style.use('seaborn-v0_8-whitegrid')
     fig, ax = plt.subplots(figsize=(15, 9))
     
-    x_smooth_semana, y_smooth_semana = get_spline_smooth(df['hora_numero'], df['MaiorDeposito7DiasAtras'])
-    x_smooth_hoje, y_smooth_hoje = get_spline_smooth(df['hora_numero'], df['realizado_hoje'])
-    x_smooth_proj, y_smooth_proj = get_spline_smooth(df['hora_numero'], df['linha_projecao'])
+    x_smooth_semana, y_smooth_semana = get_spline_smooth(df['hora_plot'], df['MaiorDeposito7DiasAtras'])
+    x_smooth_hoje, y_smooth_hoje = get_spline_smooth(df['hora_plot'], df['realizado_hoje'])
+    x_smooth_proj, y_smooth_proj = get_spline_smooth(df['hora_plot'], df['linha_projecao'])
 
     ax.plot(x_smooth_semana, y_smooth_semana, color=COR_SEMANA_PASSADA, linewidth=2.5)
     ax.plot(x_smooth_hoje, y_smooth_hoje, color=COR_HOJE_REALIZADO, linewidth=2.5)
     ax.plot(x_smooth_proj, y_smooth_proj, color=COR_PROJECAO, linewidth=2.5, linestyle='--')
     
-    ax.scatter(df['hora_numero'], df['MaiorDeposito7DiasAtras'], color=COR_SEMANA_PASSADA, s=20, zorder=10)
-    ax.scatter(df['hora_numero'], df['realizado_hoje'], color=COR_HOJE_REALIZADO, s=20, zorder=10)
+    ax.scatter(df['hora_plot'], df['MaiorDeposito7DiasAtras'], color=COR_SEMANA_PASSADA, s=20, zorder=10)
+    ax.scatter(df['hora_plot'], df['realizado_hoje'], color=COR_HOJE_REALIZADO, s=20, zorder=10)
     
     ax.fill_between(x_smooth_hoje, y_smooth_hoje, color=COR_PREENCHIMENTO, alpha=0.5)
 
