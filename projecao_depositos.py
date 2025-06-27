@@ -117,7 +117,7 @@ def criar_grafico_projecao():
         # Descomente as linhas abaixo para usar o Git
         repo = Repo(repo_dir)
         repo.git.add('grafico_projecao_deposito.png')
-        repo.index.commit('chore: Ajusta posição da legenda para melhor visualização')
+        repo.index.commit('Atualização gráfico projeção depósito ZEROUM')
         origin = repo.remote(name='origin')
         origin.push()
         print("Arquivo enviado para o GitHub com sucesso!")

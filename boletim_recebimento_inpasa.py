@@ -95,7 +95,7 @@ try:
     # Descomente as linhas abaixo para usar o Git
     repo = Repo(repo_dir)
     repo.git.add('grafico_quantidade_por_empresa.png')
-    repo.index.commit('chore: Ajusta posição da legenda para melhor visualização')
+    repo.index.commit('Atualização Gráfico Recebimento INPASA')
     origin = repo.remote(name='origin')
     origin.push()
     print("Arquivo enviado para o GitHub com sucesso!")
