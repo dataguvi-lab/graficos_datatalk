@@ -85,7 +85,7 @@ ax.legend(
 # Ajuste fino para garantir que nada seja cortado
 plt.tight_layout(rect=[0.05, 0.05, 0.95, 0.9]) # Ajusta para garantir que o título e legenda não sejam cortados
 
-plt.savefig('grafico_quantidade_por_empresa.png', dpi=300, bbox_inches='tight', facecolor='white')
+plt.savefig('/home/ubuntu/repositorios/graficos_datatalk/grafico_quantidade_por_empresa.png', dpi=300, bbox_inches='tight', facecolor='white')
 
 # Caminho onde o repositório está clonado
 repo_dir = '/home/ubuntu/repositorios/graficos_datatalk'  # <=== altere aqui
