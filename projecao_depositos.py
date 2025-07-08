@@ -5,9 +5,10 @@ import psycopg2 # ou o conector do seu banco de dados
 from io import StringIO
 import numpy as np
 from scipy.interpolate import make_interp_spline
-import datetime
+from datetime import datetime, timedelta
 from wrapper import DataWrapper
 from git import Repo
+from zoneinfo import ZoneInfo
 
 # --- Configurações Visuais do Gráfico ---
 COR_SEMANA_PASSADA = '#495057'
@@ -43,7 +44,10 @@ def criar_grafico_projecao():
     try:
         primeira_hora_projetada = df[~np.isclose(df['projecao'], df['AtualDepositoHoje'])]['hora_numero'].min()
         print(primeira_hora_projetada)
-        hora_corte = primeira_hora_projetada - 1
+        tz_sp = ZoneInfo("America/Sao_Paulo")
+        agora = datetime.now(tz=tz_sp)
+        hora_corte = (agora - timedelta(hours=1)).hour
+        print(hora_corte)
         print(f"Ponto de corte detectado automaticamente: Hora {hora_corte}")
     except (ValueError, TypeError):
         hora_corte = 24
@@ -72,7 +76,7 @@ def criar_grafico_projecao():
     ax.fill_between(x_smooth_hoje, y_smooth_hoje, color=COR_PREENCHIMENTO, alpha=0.5)
 
     dias_semana = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo']
-    hoje = datetime.datetime.now()
+    hoje = datetime.now()
     indice = hoje.weekday()
 
     # --- Formatação e Títulos ---
@@ -104,6 +108,7 @@ def criar_grafico_projecao():
     
     plt.savefig('/home/ubuntu/repositorios/graficos_datatalk/grafico_projecao_deposito.png', dpi=300, bbox_inches='tight', facecolor='white')
 
+    plt.show()
 
     # Caminho onde o repositório está clonado
     repo_dir = '/home/ubuntu/repositorios/graficos_datatalk'  # <=== altere aqui
