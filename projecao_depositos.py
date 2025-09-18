@@ -81,7 +81,7 @@ def criar_grafico_projecao():
 
     # --- Formatação e Títulos ---
     fig.suptitle(f'Projeção dos depósitos ao longo do dia ({dias_semana[indice]})', fontsize=20, fontweight='bold', ha='center')
-    ax.set_title("Comparativo do valor acumulado de hoje com a semana anterior", fontsize=14, pad=10, color='grey')
+    ax.set_title("Comparativo do valor acumulado de hoje com o mesmo dia do mês anterior", fontsize=14, pad=10, color='grey')
     
     ax.set_xlabel('Hora do dia', fontsize=12, labelpad=10)
     ax.set_ylabel('Valor Acumulado (R$)', fontsize=12, labelpad=10)
