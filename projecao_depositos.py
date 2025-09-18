@@ -62,7 +62,7 @@ def criar_grafico_projecao():
     plt.style.use('seaborn-v0_8-whitegrid')
     fig, ax = plt.subplots(figsize=(15, 9))
     
-    x_smooth_semana, y_smooth_semana = get_spline_smooth(df['hora_plot'], df['MaiorDeposito7DiasAtras'])
+    x_smooth_semana, y_smooth_semana = get_spline_smooth(df['hora_plot'], df['MaiorDepositoMesAnterior'])
     x_smooth_hoje, y_smooth_hoje = get_spline_smooth(df['hora_plot'], df['realizado_hoje'])
     x_smooth_proj, y_smooth_proj = get_spline_smooth(df['hora_plot'], df['linha_projecao'])
 
@@ -70,7 +70,7 @@ def criar_grafico_projecao():
     ax.plot(x_smooth_hoje, y_smooth_hoje, color=COR_HOJE_REALIZADO, linewidth=2.5)
     ax.plot(x_smooth_proj, y_smooth_proj, color=COR_PROJECAO, linewidth=2.5, linestyle='--')
     
-    ax.scatter(df['hora_plot'], df['MaiorDeposito7DiasAtras'], color=COR_SEMANA_PASSADA, s=20, zorder=10)
+    ax.scatter(df['hora_plot'], df['MaiorDepositoMesAnterior'], color=COR_SEMANA_PASSADA, s=20, zorder=10)
     ax.scatter(df['hora_plot'], df['realizado_hoje'], color=COR_HOJE_REALIZADO, s=20, zorder=10)
     
     ax.fill_between(x_smooth_hoje, y_smooth_hoje, color=COR_PREENCHIMENTO, alpha=0.5)
