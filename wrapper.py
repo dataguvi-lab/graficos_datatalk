@@ -34,5 +34,15 @@ class DataWrapper:
         conn = start_connection_zeroum()           
         df = pd.read_sql_query(cfg.QUERY_PROJECAO_ZEROUM, conn)
         df = pd.DataFrame(df)
+        df.rename(columns={'atualdepositohoje': 'AtualDepositoHoje', 'maiordepositomesanterior': 'MaiorDepositoMesAnterior'}, inplace=True)
+        conn.close()
+        return df
+    
+    @staticmethod
+    def get_projecao_deposito_energia():
+        conn = start_connection_zeroum()           
+        df = pd.read_sql_query(cfg.QUERY_PROJECAO_ENERGIA, conn)
+        df = pd.DataFrame(df)
+        df.rename(columns={'atualdepositohoje': 'AtualDepositoHoje', 'maiordepositomesanterior': 'MaiorDepositoMesAnterior'}, inplace=True)
         conn.close()
         return df

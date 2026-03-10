@@ -106,7 +106,7 @@ def criar_grafico_projecao():
     
     fig.tight_layout(rect=[0, 0, 1, 0.96]) 
     
-    plt.savefig('grafico_projecao_deposito.png', dpi=300, bbox_inches='tight', facecolor='white')
+    plt.savefig('grafico_projecao_deposito_energia.png', dpi=300, bbox_inches='tight', facecolor='white')
 
     plt.show()
 
