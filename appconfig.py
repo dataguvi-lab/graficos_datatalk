@@ -13,21 +13,25 @@ order by empresa"""
 QUERY_PROJECAO_ZEROUM = """WITH
 parametros AS (
     SELECT
-        TRUNC(CONVERT_TIMEZONE('America/Sao_Paulo', GETDATE())) AS dia_hoje,
-        (TRUNC(CONVERT_TIMEZONE('America/Sao_Paulo', GETDATE())) - INTERVAL '1 month')::DATE AS dia_mes_anterior
+        -- Usa CURRENT_TIMESTAMP para garantir o fuso e converte direto para DATE
+        (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::DATE AS dia_hoje,
+        DATEADD(month, -1, (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::DATE)::DATE AS dia_mes_anterior
 ),
 hora_corte_calc AS (
     SELECT COALESCE((
-        SELECT EXTRACT(HOUR FROM MAX((d.date || ' ' || d.hora)::timestamp))::int
+        -- Extrai a hora direto do campo hora, sem concatenar com a data
+        SELECT MAX(EXTRACT(HOUR FROM d.hora::time))::int
         FROM inplay.fact_deposits_withdraws_summarized d
         CROSS JOIN parametros p
         WHERE d.date = p.dia_hoje AND d.tipo = 'deposit'
-    ), 0) AS hora_corte
+          -- Descartar a hora atual pois os dados ainda não fecharam (evita queda na curva de projeção)
+          AND EXTRACT(HOUR FROM d.hora::time) < EXTRACT(HOUR FROM CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')
+    ), -1) AS hora_corte
 ),
 dados_hoje AS (
     SELECT
-        EXTRACT(HOUR FROM (d.date || ' ' || d.hora)::timestamp) AS hora_numero,
-        SUM(SUM(d.amount)) OVER (ORDER BY EXTRACT(HOUR FROM (d.date || ' ' || d.hora)::timestamp) ROWS UNBOUNDED PRECEDING) AS acumulado_hoje
+        EXTRACT(HOUR FROM d.hora::time) AS hora_numero,
+        SUM(SUM(d.amount)) OVER (ORDER BY EXTRACT(HOUR FROM d.hora::time) ROWS UNBOUNDED PRECEDING) AS acumulado_hoje
     FROM inplay.fact_deposits_withdraws_summarized d
     CROSS JOIN parametros p
     WHERE d.date = p.dia_hoje AND d.tipo = 'deposit'
@@ -35,8 +39,8 @@ dados_hoje AS (
 ),
 dados_mes_anterior AS (
     SELECT
-        EXTRACT(HOUR FROM (d.date || ' ' || d.hora)::timestamp) AS hora_numero,
-        SUM(SUM(d.amount)) OVER (ORDER BY EXTRACT(HOUR FROM (d.date || ' ' || d.hora)::timestamp) ROWS UNBOUNDED PRECEDING) AS acumulado_mes_anterior
+        EXTRACT(HOUR FROM d.hora::time) AS hora_numero,
+        SUM(SUM(d.amount)) OVER (ORDER BY EXTRACT(HOUR FROM d.hora::time) ROWS UNBOUNDED PRECEDING) AS acumulado_mes_anterior
     FROM inplay.fact_deposits_withdraws_summarized d
     CROSS JOIN parametros p
     WHERE d.date = p.dia_mes_anterior AND d.tipo = 'deposit'
@@ -60,14 +64,18 @@ horas_gs AS (
 )
 SELECT
     DATEADD(hour, gs.hora_numero, p.dia_hoje::timestamp) AS hora,
-    h.acumulado_hoje AS "AtualDepositoHoje",
-    s.acumulado_mes_anterior AS "MaiorDepositoMesAnterior",
-    CASE
+    
+    -- Formatando opcionalmente os campos principais para 2 casas decimais, caso necessário
+    CAST(h.acumulado_hoje AS DECIMAL(18,2)) AS "AtualDepositoHoje",
+    CAST(s.acumulado_mes_anterior AS DECIMAL(18,2)) AS "MaiorDepositoMesAnterior",
+    
+    CAST(CASE
         WHEN gs.hora_numero > hc.hora_corte THEN
             s.acumulado_mes_anterior * fp.fator
         ELSE
             h.acumulado_hoje
-    END AS projecao
+    END AS DECIMAL(18,2)) AS projecao
+    
 FROM
     horas_gs gs
     LEFT JOIN dados_hoje h ON gs.hora_numero = h.hora_numero
