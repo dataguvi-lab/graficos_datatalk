@@ -42,21 +42,16 @@ def criar_grafico_projecao():
     df['hora_plot'] = df['hora_numero'].apply(lambda h: h+1)
     
     try:
-        # A primeira hora em que os dados reais são diferentes da projeção SQL
-        # Utiliza-se fillna(-1) para evitar comportamento inesperado ao comparar NaNs com floats
-        df_projetado = df[~np.isclose(df['projecao'].fillna(-1), df['AtualDepositoHoje'].fillna(-1))]
-        if not df_projetado.empty:
-            primeira_hora_projetada = df_projetado['hora_numero'].min()
-            hora_corte = int(primeira_hora_projetada) - 1
-            print(f"Ponto de corte detectado pelo DB: Hora {hora_corte}")
-        else:
-            tz_sp = ZoneInfo("America/Sao_Paulo")
-            agora = datetime.now(tz=tz_sp)
-            hora_corte = (agora - timedelta(hours=1)).hour
-            print(f"Ponto de corte detectado (fallback manual): Hora {hora_corte}")
-    except Exception as e:
+        primeira_hora_projetada = df[~np.isclose(df['projecao'], df['AtualDepositoHoje'])]['hora_numero'].min()
+        print(primeira_hora_projetada)
+        tz_sp = ZoneInfo("America/Sao_Paulo")
+        agora = datetime.now(tz=tz_sp)
+        hora_corte = (agora - timedelta(hours=1)).hour
+        print(hora_corte)
+        print(f"Ponto de corte detectado automaticamente: Hora {hora_corte}")
+    except (ValueError, TypeError):
         hora_corte = 24
-        print(f"Nenhuma projeção detectada ({e}). Exibindo dados completos.")
+        print("Nenhuma projeção detectada. Exibindo dados completos.")
 
     df['realizado_hoje'] = df.apply(lambda row: row['AtualDepositoHoje'] if row['hora_numero'] <= hora_corte else np.nan, axis=1)
     print(df)
@@ -111,7 +106,7 @@ def criar_grafico_projecao():
     
     fig.tight_layout(rect=[0, 0, 1, 0.96]) 
     
-    plt.savefig('grafico_projecao_deposito.png', dpi=300, bbox_inches='tight', facecolor='white')
+    plt.savefig('grafico_projecao_deposito_energia.png', dpi=300, bbox_inches='tight', facecolor='white')
 
     plt.show()
 
