@@ -81,12 +81,14 @@ def criar_grafico_projecao():
     ax.fill_between(x_smooth_hoje, y_smooth_hoje, color=COR_PREENCHIMENTO, alpha=0.5)
 
     dias_semana = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo']
-    hoje = datetime.now()
-    indice = hoje.weekday()
+    tz_sp = ZoneInfo("America/Sao_Paulo")
+    agora = datetime.now(tz=tz_sp)
+    indice = agora.weekday()
+    horario_atual = agora.strftime('%d/%m/%Y %H:%M:%S')
 
     # --- Formatação e Títulos ---
     fig.suptitle(f'Projeção dos depósitos ao longo do dia ({dias_semana[indice]})', fontsize=20, fontweight='bold', ha='center')
-    ax.set_title("Comparativo do valor acumulado de hoje com o mesmo dia do mês anterior", fontsize=14, pad=10, color='grey')
+    ax.set_title(f"Comparativo hoje vs mesmo dia mês anterior | Última atualização: {horario_atual}", fontsize=14, pad=10, color='grey', loc='center')
     
     ax.set_xlabel('Hora do dia', fontsize=12, labelpad=10)
     ax.set_ylabel('Valor Acumulado (R$)', fontsize=12, labelpad=10)
@@ -112,22 +114,26 @@ def criar_grafico_projecao():
     fig.tight_layout(rect=[0, 0, 1, 0.96]) 
     
     plt.savefig('grafico_projecao_deposito.png', dpi=300, bbox_inches='tight', facecolor='white')
-
-    plt.show()
+    plt.close()
 
     # Caminho onde o repositório está clonado
     import os
     repo_dir = os.path.dirname(os.path.abspath(__file__))
 
-    # Bloco do Git (mantido como no original)
+    # Bloco do Git
     try:
-        # Descomente as linhas abaixo para usar o Git
-        #repo = Repo(repo_dir)
-        #repo.git.add('grafico_projecao_deposito.png')
-        #repo.index.commit('Atualização gráfico de projeção depósito ZEROUM')
-        #origin = repo.remote(name='origin')
-        #origin.push()
-        print("Arquivo enviado para o GitHub com sucesso!")
+        repo = Repo(repo_dir)
+        repo.git.add('grafico_projecao_deposito.png')
+        
+        # Só faz o commit se houver mudanças
+        if repo.is_dirty(untracked_files=True):
+            commit_msg = f'Atualização gráfico de projeção depósito ZEROUM - {horario_atual}'
+            repo.index.commit(commit_msg)
+            origin = repo.remote(name='origin')
+            origin.push()
+            print(f"Arquivo enviado para o GitHub com sucesso! ({horario_atual})")
+        else:
+            print("Nenhuma alteração detectada no gráfico. Ignorando commit.")
     except Exception as e:
         print(f"Erro ao enviar para o GitHub: {e}")
 
